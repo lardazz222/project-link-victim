@@ -30,8 +30,9 @@ init()
 CONFIG_PATH = os.path.join( os.path.expanduser("~"), ".linkcfg" )
 
 class Logger:
-    def __init__(self, prefix):
+    def __init__(self, prefix, debug=False):
         self.prefix = prefix
+        self.debug = debug
 
     def log(self, arg, prefix="", *args):
         prefix = f"[{colored(self.prefix, 'blue') + colored('::' + prefix, 'white') if prefix else ''}]"
@@ -60,6 +61,14 @@ class Logger:
         for arg in args:
             out += f"{arg} "
         print(out)
+
+    def debug(self, arg, prefix="", *args):
+        if self.debug:
+            prefix = f"[{colored(self.prefix, 'magenta') + colored('::' + prefix, 'white') if prefix else ''}]"
+            out = f"{prefix} {arg} "
+            for arg in args:
+                out += f"{arg} "
+            print(out)
 
 class LinkUtilities:
     """
@@ -204,6 +213,11 @@ class DisplayBuffer:
             return None
         return self._buffer[-1]
 
+    def get_latest_frame_and_compress(self, quality: int = 50):
+        if len(self._buffer) == 0:
+            return None
+        return cv2.imencode('.jpg', self._buffer[-1], [cv2.IMWRITE_JPEG_QUALITY, quality])[1].tobytes()
+
     def _update_thread(self):
         self.logger.success('started service: _update_thread', "threaded-service")
         try:
@@ -223,11 +237,82 @@ class DisplayBuffer:
         self.camera = dxcam.create(monitor, 0, output_color="BGR")
         self.camera.start(video_mode=True, target_fps=self.fps)
 
+class JobHandler:
+    def __init__(self, buffer: DisplayBuffer, realtime_data: RealtimeDataService):
+        self.logger = Logger("JobHandler")
+        self.jobs = []
+        self.finished_jobs = []
+
+        # self.job_handler_thread = threading.Thread(target=self._job_handler_loop)
+        # self.job_handler_thread.daemon = True
+
+        # self.job_handler_thread.start()
+        self.JOB_OK = {
+            "status": True
+        }
+
+        self.UNKNOW_JOB_TYPE = {
+            "status": False,
+            "message": "unknown job type"
+        }
+
+        self.buffer = buffer
+        self.realtime_data = realtime_data
+    
+
+    def ProcessJob(self, job: dict):
+        job_type = job['type']
+        match job_type:
+            case "mouse":
+                x = job['x']
+                y = job['y']
+                self.logger.debug(f"X:{x} Y:{y}", "mouse")
+                return self.JOB_OK
+            case "ping":
+                self.logger.debug("ping", "ping")
+                return self.JOB_OK
+            case "static_data":
+                self.logger.debug("static_data", "static_data")
+                OK = self.JOB_OK
+                OK['response'] = self.realtime_data.GetStaticData()
+                return OK
+            case "dynamic_data":
+                self.logger.debug("dynamic_data", "dynamic_data")
+                OK = self.JOB_OK
+                OK['response'] = self.realtime_data.GetDynamicData()
+                return OK
+            case "display":
+                self.logger.debug("display", "display")
+                OK = self.JOB_OK
+                OK['response'] = self.buffer.get_latest_frame_and_compress()
+                return OK
+            case _:
+                self.logger.error(f"unknown job type: {job_type}", "job-handler")
+
+        return self.UNKNOW_JOB_TYPE
+    # def _job_handler_loop(self):
+    #     """
+    #     Internal thread for handling as they are recieved in real time
+    #     """
+    #     self.logger.success('started service: _job_handler_loop', "threaded-service")
+    #     try:
+    #         while True:
+    #             if len(self.jobs) > 0:
+    #                 job = self.jobs.pop(0)
+    #                 self.logger.log(f"handling job: {job}", "job-handler")
+    #                 self.ProcessJob(job)
+    #             time.sleep(0.1)
+    #     except KeyboardInterrupt:
+    #         self.logger.log("exiting service: _job_handler_loop", "threaded-service")
+
+UUID = LinkUtilities.GetUUID()
+
 class SocketAPI:
     # TODO: Add encryption key parameter
-    def __init__(self, host: str = "127.0.0.1", port: int = 5000) -> None:
+    def __init__(self, job_handler: JobHandler,host: str = "127.0.0.1", port: int = 5000) -> None:
         self.host = host
         self.port = port
+        self.job_handler = job_handler
         self.logger = Logger("SocketAPI")
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -276,12 +361,39 @@ class SocketAPI:
         return self.load_packet(data)
 
     def get(self, data: dict) -> dict:
+        data['uuid'] = UUID
         packed = self.create_packet(data)
         self.socket.send(packed)
         return self.recv()
+    
+    def close(self):
+        self.socket.close()
+
+    # Called when the client starts. This tells the server the unique ID, for referencing
+    def Register(self):
+        data = {
+            "type": "register",
+        }
+        return self.get(data)
+    
+    def GetJobs(self) -> dict:
+        self.logger.log("fetching jobs", "socket")
+        data = {
+            "type": "get-jobs",
+        }
+        return self.get(data)
+    
+    def MarkJobAsComplete(self, job_id):
+        self.logger.log(f"marking job {job_id} as complete", "socket")
+        data = {
+            "type": "complete_job",
+            "job_id": job_id
+        }
+        return self.get(data)
+
+api = SocketAPI(JobHandler(), host="127.0.0.1", port=5000)
 
 
-UUID = LinkUtilities.GetUUID()
 
 global_logger = Logger("Project-Link")
 global_logger.log("initiating services", "core")
