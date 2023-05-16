@@ -281,38 +281,35 @@ class SocketAPI:
         return self.recv()
 
 
-global_logger = Logger("Project-Link")
-
 UUID = LinkUtilities.GetUUID()
 
-# 
-#  SERVICES
-# 
-
+global_logger = Logger("Project-Link")
 global_logger.log("initiating services", "core")
-
-display = DisplayBuffer()
-
-# RealtimeDataService: This is a service that provides organized data about the system
-realtime = RealtimeDataService()
 
 # 
 #  RUNTIME LOOP
 # 
 class RuntimeManager:
     def __init__(self):
-        # DisplayBuffer: This is a service that will be used to capture the screen
-        self.display = DisplayBuffer()
-
-        # RealtimeDataService: This is a service that provides organized data about the system
-        self.realtime_data = RealtimeDataService()
-
         self.logger = Logger("Runtime")
+        self.display = DisplayBuffer() # This is a service that will be used to capture the screen
+        self.realtime_data = RealtimeDataService() # This is a service that provides organized data about the system
+
+    def Start(self) -> None:
+        """
+        Start the main application loop
+        """
+        self._loop()
 
     def _loop(self):
         self.logger.success("Started runtime loop", "threaded-service")
+        while True:
+            self.logger.log("Runtime tick 1000ms", "idle")
+            time.sleep(1)
 
-
+if __name__ == "__main__":
+    rt = RuntimeManager()
+    rt.Start()
 
 
 # try:
