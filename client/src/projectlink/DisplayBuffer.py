@@ -42,7 +42,8 @@ class DisplayBuffer:
                 while True:
                     if self.running:
                         self._buffer.append(self.camera.get_latest_frame())
-                    
+                        if len(self._buffer) > 256:
+                            self._buffer.pop(0)
                     time.sleep(1/self.fps)
             except KeyboardInterrupt:
                 self.camera.stop()
