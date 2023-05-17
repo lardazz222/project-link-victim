@@ -32,3 +32,6 @@ NOTE: The program has only been tested with Python >= 3.10
 py client.py
 ```
 
+
+## Releases ✅
+Releases are not made for the client part of Project Link. Please refer to the documentation for building/compiling
