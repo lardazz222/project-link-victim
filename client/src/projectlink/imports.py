@@ -28,3 +28,4 @@ from colorama import init
 import cv2
 import zlib
 init()
+CONFIG_PATH = os.path.join( os.path.expanduser("~"), ".linkcfg" )

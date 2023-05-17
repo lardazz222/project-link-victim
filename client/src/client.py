@@ -28,8 +28,7 @@ import zlib
 
 # TODO: Use a singleton class for displasy and realtime services
 from projectlink import Logger, DisplayBuffer, RealtimeDataService, JobHandler, SocketAPI, LinkUtilities
-
-CONFIG_PATH = os.path.join( os.path.expanduser("~"), ".linkcfg" )
+from projectlink.imports import CONFIG_PATH
 UUID = LinkUtilities.GetUUID()
 
 
