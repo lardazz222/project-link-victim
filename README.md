@@ -1,4 +1,4 @@
-# Project Link Victim Client
+# Project Link Client
 The client part of the Project Link Remote Access Tool
 Project Link aims to make remote access easy with on the fly binary generation and
 performance features that will work on any client.
