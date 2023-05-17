@@ -25,12 +25,13 @@ from termcolor import colored
 from colorama import init
 import cv2
 import zlib
-from utility import Logger, LinkUtilities, RealtimeDataService, DisplayBuffer, JobHandler, SocketAPI
+
+# TODO: Use a singleton class for displasy and realtime services
+from projectlink import Logger, DisplayBuffer, RealtimeDataService, JobHandler, SocketAPI, LinkUtilities
 
 CONFIG_PATH = os.path.join( os.path.expanduser("~"), ".linkcfg" )
 UUID = LinkUtilities.GetUUID()
 
-api = SocketAPI(JobHandler(), host="127.0.0.1", port=5000)
 
 global_logger = Logger("Project-Link")
 global_logger.log("initiating services", "core")
@@ -40,6 +41,8 @@ class RuntimeManager:
         self.logger = Logger("Runtime")
         self.display = DisplayBuffer() # This is a service that will be used to capture the screen
         self.realtime_data = RealtimeDataService() # This is a service that provides organized data about the system
+        self.job_handler = JobHandler() # This is a service that will handle jobs
+        api = SocketAPI(self.job_handler, host="127.0.0.1", port=5000)
 
     def Start(self) -> None:
         """
