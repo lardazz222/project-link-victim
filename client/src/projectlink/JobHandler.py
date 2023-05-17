@@ -2,6 +2,8 @@ from .imports import *
 from .Logger import Logger
 from .DisplayBuffer import DisplayBuffer
 from .RealtimeDataService import RealtimeDataService
+from .Utilities import Utilities
+
 
 class JobHandler:
     def __init__(self):

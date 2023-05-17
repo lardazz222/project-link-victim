@@ -3,9 +3,10 @@ from .Logger import Logger
 from .JobHandler import JobHandler
 from .DisplayBuffer import DisplayBuffer
 from .RealtimeDataService import RealtimeDataService
-from .LinkUtilities import LinkUtilities as LinkUtil
+from .Utilities import Utilities
 
-UUID = LinkUtil.GetUUID()
+
+UUID = Utilities.GetUUID()
 
 class SocketAPI:
     # TODO: Add encryption key parameter

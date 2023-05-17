@@ -27,15 +27,25 @@ import cv2
 import zlib
 
 # TODO: Use a singleton class for displasy and realtime services
-from projectlink import Logger, DisplayBuffer, RealtimeDataService, JobHandler, SocketAPI, LinkUtilities
+# from projectlink import Logger, DisplayBuffer, RealtimeDataService, JobHandler, SocketAPI, LinkUtilities
+from projectlink.Logger import Logger
+from projectlink.DisplayBuffer import DisplayBuffer
+from projectlink.RealtimeDataService import RealtimeDataService
+from projectlink.JobHandler import JobHandler
+from projectlink.SocketAPI import SocketAPI
+from projectlink.Utilities import Utilities
 from projectlink.imports import CONFIG_PATH
-UUID = LinkUtilities.GetUUID()
+
+
+
+UUID = Utilities.GetUUID()
 
 
 global_logger = Logger("Project-Link")
 global_logger.log("initiating services", "core")
 
 class RuntimeManager:
+
     def __init__(self):
         self.logger = Logger("Runtime")
         self.display = DisplayBuffer() # This is a service that will be used to capture the screen

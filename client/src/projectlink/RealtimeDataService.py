@@ -1,6 +1,8 @@
 from .imports import *
 from .Logger import Logger
-from .LinkUtilities import LinkUtilities
+from .Utilities import Utilities
+
+
 
 class RealtimeDataService:
     """
@@ -53,7 +55,7 @@ class RealtimeDataService:
                     self.logger.error(f"can't gather device information: {e}", "threaded-service")
 
                 try:
-                    storage = LinkUtilities.GetLabeledDrives()
+                    storage = Utilities.GetLabeledDrives()
                     self.storage_locations = storage
                 except Exception as e:
                     # print(f"[RT-expensive-data] failed to enumerate storage locations: {e}")
