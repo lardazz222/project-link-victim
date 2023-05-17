@@ -15,13 +15,13 @@ class SocketAPI:
         self.port = port
         self.job_handler = job_handler
         self.logger = Logger("SocketAPI")
-        try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.connect((self.host, self.port))
-            self.logger.success(f"connected to {self.host}:{self.port}", "socket")
-        except Exception as e:
-            self.logger.error(f"failed to connect to {self.host}:{self.port}: {e}", "socket")
-            sys.exit(1)
+        # try:
+        #     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #     self.socket.connect((self.host, self.port))
+        #     self.logger.success(f"connected to {self.host}:{self.port}", "socket")
+        # except Exception as e:
+        #     self.logger.error(f"failed to connect to {self.host}:{self.port}: {e}", "socket")
+        #     sys.exit(1)
 
     # TODO: Add methods to interact with ProjectLink server. It functions
     #       
@@ -30,6 +30,26 @@ class SocketAPI:
     #           - Return a response from the server
     #
     #       Custom methods will be created to abstractify the process of API interaction
+
+    def connect(self) -> bool:
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.connect((self.host, self.port))
+            self.logger.success(f"connected to {self.host}:{self.port}", "socket")
+            return True
+        except:
+            self.logger.error(f"failed to connect to {self.host}:{self.port}", "socket")
+            return False
+        
+    def auto_reconnect(self):
+        """
+        Lock the thread until a connection is established
+        """
+        while True:
+            # check if socket is connected already
+            if self.connect():
+                break
+            time.sleep(1)
 
     def create_packet(self, data: dict) -> bytes:
         """
@@ -51,15 +71,10 @@ class SocketAPI:
         return data
 
     def recv(self) -> dict:
-        # get first 4 bytes
-        data = self.socket.recv(4)
-        if not data:
-            return None
-        # remove first 4 bytes
-        data = data[4:]
-        # get the rest of the data
-        data += self.socket.recv(struct.unpack("I", data)[0])
+        size = struct.unpack("I", self.socket.recv(4))[0]
+        data = self.socket.recv(size)
         return self.load_packet(data)
+
 
     def get(self, data: dict) -> dict:
         data['uuid'] = UUID

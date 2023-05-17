@@ -50,7 +50,7 @@ class RuntimeManager:
         self.display = DisplayBuffer() # This is a service that will be used to capture the screen
         self.realtime_data = RealtimeDataService() # This is a service that provides organized data about the system
         self.job_handler = JobHandler() # This is a service that will handle jobs
-        # api = SocketAPI(self.job_handler, host="127.0.0.1", port=5000)
+        self.api = SocketAPI(self.job_handler, host="127.0.0.1", port=6969)
 
     def Start(self) -> None:
         """
@@ -60,15 +60,26 @@ class RuntimeManager:
 
     def _loop(self):
         try:
-            self.logger.success("Started runtime loop", "threaded-service")
             while True:
-                # show latest frame
-                frame = self.display.get_latest_frame()
-                if frame is not None:
-                    frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
-                    cv2.imshow('frame', frame)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                self.api.auto_reconnect()
+
+                self.logger.success("Registering client", "API")
+                reg_result = self.api.Register()
+                self.logger.log(f"Registration result: {reg_result}", "runtime")
+
+                try:
+                    while True:
+                        self.logger.log("Runtime loop is running", "runtime")
+                        # frame = self.display.get_latest_frame()
+                        # if frame is not None:
+                        #     frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
+                        #     cv2.imshow('frame', frame)
+                        #     if cv2.waitKey(1) & 0xFF == ord('q'):
+                        #         break
+                        time.sleep(1)
+                except ConnectionAbortedError:
+                    self.logger.log("Disconnected", "runtime")
+                time.sleep(1)               
         except KeyboardInterrupt:
             self.logger.log("Exiting Project-Link Client", "core")
             sys.exit(0)
