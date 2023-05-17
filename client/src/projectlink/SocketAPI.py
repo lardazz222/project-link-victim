@@ -44,7 +44,6 @@ class SocketAPI:
         return data
 
     def load_packet(self, data: bytes) -> dict:
-        data = data[4:]
         data = zlib.decompress(data) # decompress
         data = pickle.loads(data) # convert to python object
         if not isinstance(data, dict):
@@ -56,7 +55,8 @@ class SocketAPI:
         data = self.socket.recv(4)
         if not data:
             return None
-        
+        # remove first 4 bytes
+        data = data[4:]
         # get the rest of the data
         data += self.socket.recv(struct.unpack("I", data)[0])
         return self.load_packet(data)
