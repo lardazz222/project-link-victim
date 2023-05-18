@@ -107,24 +107,11 @@ class SocketAPI:
             "type": "register",
             "data": {
                 "static_data": RealtimeDataService().GetStaticData(),
-                "dynamic_data": RealtimeDataService().GetDynamicData()
+                "dynamic_data": RealtimeDataService().GetDynamicData(),
+                "uuid": UUID
             }
         }
         return self.get(data)
-    
-    # def GetJobs(self) -> dict:
-    #     self.logger.log("fetching jobs", "socket")
-    #     data = {
-    #         "type": "get-jobs",
-    #     }
-    #     return self.get(data)
-    
-    # def MarkJobAsComplete(self, job_id):
-    #     data = {
-    #         "type": "complete_job",
-    #         "job_id": job_id
-    #     }
-    #     return self.get(data)
 
     def UpdateDynamicData(self, data: dict) -> dict:
         data = {
@@ -142,8 +129,7 @@ class SocketAPI:
 
     def Ping(self) -> dict:
         data = {
-            "type": "ping",
-            "data": None
+            "type": "ping"
         }
         return self.get(data)
 
@@ -159,5 +145,14 @@ class SocketAPI:
             {
                 "type": "updateStreamBuffer",
                 "data": frame
+            }
+        )
+    
+    def Disconnect(self) -> None:
+        # send disconnect signal to server,
+        # this helps keep it clean
+        self.send(
+            {
+                "type": "disconnect",
             }
         )
