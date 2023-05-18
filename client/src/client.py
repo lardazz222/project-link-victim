@@ -72,17 +72,12 @@ class RuntimeManager:
             while True:
                 self.api.auto_reconnect()
 
-                static_data = self.realtime_data.GetStaticData()
-                reg_result = self.api.Register()
-                static_result = self.api.UpdateStaticData(static_data)
-                # send static data
-
-                if not static_result or not reg_result:
-                    self.logger.error("Failed to register or update static data", "core")
+                reg_result = self.api.Register() # sends UUID, and system data
+                if not reg_result:
+                    self.logger.error("Failed to register", "core")
                     continue
-                
-                self.logger.log(f"Registration result: {reg_result['status']}", "runtime")
-                self.logger.log(f"Update result: {static_result['status']}", "static_data")
+                else:
+                    pprint(reg_result['data'])
                 
                 interval = 0
                 max_interval = 5
@@ -113,6 +108,8 @@ class RuntimeManager:
                 time.sleep(1)               
         except KeyboardInterrupt:
             self.logger.log("CTRL+C: Exiting Project-Link Client", "core")
+            # send a disconnect message to the server
+            self.api.Disconnect()
             sys.exit(0)
 
 if __name__ == "__main__":
