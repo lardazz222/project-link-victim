@@ -7,7 +7,7 @@ import struct
 import sys
 import json
 import threading
-import numpy
+import numpy as np
 import dxcam
 import time
 import platform

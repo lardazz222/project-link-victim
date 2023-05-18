@@ -51,39 +51,53 @@ class SocketAPI:
                 break
             time.sleep(1)
 
-    def create_packet(self, data: dict) -> bytes:
+    def recv(self, buffer: int = 4096):
+        try:
+            header = self.socket.recv(4)
+            if not header:
+                return None
+
+            data_len = struct.unpack("!I", header)[0]
+            data = b""
+            while data_len > 0:
+                chunk = self.socket.recv(min(buffer, data_len))
+                if not chunk:
+                    break
+                data += chunk
+                data_len -= len(chunk)
+
+            return data
+        except socket.error as e:
+            self.logger.error(f"Failed to recieve data ({e})", "socket")
+            return None
+
+    def send(self, data: dict) -> None:
         """
-        Assemble a packet made of bytes before sending to server
+        Send data to the client.
+
+        :param data: data to send to the client
         """
-        data = pickle.dumps(data)
-        # data = zlib.compress(data)
-
-        packet = b""
-        packet += struct.pack("I", len(data))
-        packet += data
-        return data
-
-    def load_packet(self, data: bytes) -> dict:
-        # data = zlib.decompress(data) # decompress
-        data = pickle.loads(data) # convert to python object
-        if not isinstance(data, dict):
-            raise TypeError(f"expected data to be of type dict, got {type(data)}")
-        return data
-
-    def recv(self) -> dict:
-        header = self.socket.recv(4)
-        header = struct.unpack("I", header)[0]
-        self.logger.debugging(f"length of packet: {header} bytes", "socket")
-        data = self.socket.recv(header)
-        return self.load_packet(data)
-
-
+        data = zlib.compress(pickle.dumps(data))
+        data_len = len(data)
+        header = struct.pack("!I", data_len)
+        try:
+            self.socket.sendall(header)
+            sent = 0
+            while sent < data_len:
+                sent += self.socket.send(data[sent:])
+        except socket.error as e:
+            # Handle send error
+            self.logger.error(f"Failed to send data ({e})", "socket")
+            return None
     def get(self, data: dict) -> dict:
         data['uuid'] = UUID
-        packed = self.create_packet(data)
-        self.socket.send(packed)
-        return self.recv()
-    
+        self.send(data)
+        response = self.recv()
+        if not response:
+            return None
+        response = pickle.loads(zlib.decompress(response))
+        return response
+
     def close(self):
         self.socket.close()
 
@@ -98,17 +112,52 @@ class SocketAPI:
         }
         return self.get(data)
     
-    def GetJobs(self) -> dict:
-        self.logger.log("fetching jobs", "socket")
-        data = {
-            "type": "get-jobs",
-        }
-        return self.get(data)
+    # def GetJobs(self) -> dict:
+    #     self.logger.log("fetching jobs", "socket")
+    #     data = {
+    #         "type": "get-jobs",
+    #     }
+    #     return self.get(data)
     
-    def MarkJobAsComplete(self, job_id):
-        self.logger.log(f"marking job {job_id} as complete", "socket")
+    # def MarkJobAsComplete(self, job_id):
+    #     data = {
+    #         "type": "complete_job",
+    #         "job_id": job_id
+    #     }
+    #     return self.get(data)
+
+    def UpdateDynamicData(self, data: dict) -> dict:
         data = {
-            "type": "complete_job",
-            "job_id": job_id
+            "type": "update_dynamic",
+            "data": data
         }
         return self.get(data)
+
+    def UpdateStaticData(self, data: dict) -> dict:
+        data = {
+            "type": "update_static",
+            "data": data
+        }
+        return self.get(data)
+
+    def Ping(self) -> dict:
+        data = {
+            "type": "ping",
+            "data": None
+        }
+        return self.get(data)
+
+    def CanStream(self) -> bool:
+        return self.get(
+            {
+                "type": "canStream",
+            }
+        )['data']
+
+    def UpdateStreamBuffer(self, frame: np.ndarray) -> dict:
+        return self.get(
+            {
+                "type": "updateStreamBuffer",
+                "data": frame
+            }
+        )

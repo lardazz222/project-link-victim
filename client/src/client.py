@@ -58,25 +58,56 @@ class RuntimeManager:
         """
         self._loop()
 
+    def OnInterval(self):
+        dynamic_data = self.realtime_data.GetDynamicData()
+        res = self.api.UpdateDynamicData(dynamic_data)
+        
+        if not res: # TODO: add more updates later (ex: screen capture)
+            self.logger.error("Failed to update dynamic data", "core")
+        else:
+            self.logger.log(f"Update result: {res['status']}", "dynamic_data")
+
     def _loop(self):
         try:
             while True:
                 self.api.auto_reconnect()
 
-                self.logger.success("Registering client", "API")
+                static_data = self.realtime_data.GetStaticData()
                 reg_result = self.api.Register()
-                self.logger.log(f"Registration result: {reg_result}", "runtime")
+                static_result = self.api.UpdateStaticData(static_data)
+                # send static data
 
+                if not static_result or not reg_result:
+                    self.logger.error("Failed to register or update static data", "core")
+                    continue
+                
+                self.logger.log(f"Registration result: {reg_result['status']}", "runtime")
+                self.logger.log(f"Update result: {static_result['status']}", "static_data")
+                
+                interval = 0
+                max_interval = 5
                 try:
                     while True:
-                        self.logger.log("Runtime loop is running", "runtime")
-                        # frame = self.display.get_latest_frame()
-                        # if frame is not None:
-                        #     frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
-                        #     cv2.imshow('frame', frame)
-                        #     if cv2.waitKey(1) & 0xFF == ord('q'):
-                        #         break
-                        time.sleep(1)
+                        try:
+                            pong = self.api.Ping()
+                            if not pong:
+                                break # stop the loop and try to reconnect
+                        except ConnectionAbortedError:
+                            break
+                        
+                        canStream = self.api.CanStream()
+                        if canStream:
+                            update_stream = self.api.UpdateStreamBuffer(self.display.get_latest_frame_and_compress())
+                            if not update_stream:
+                                self.logger.error("Failed to update stream buffer", "core")
+
+
+                        # Happens every max_interval seconds
+                        time.sleep(0.5)
+                        interval += 1
+                        if interval >= max_interval:
+                            self.OnInterval()
+                            interval = 0
                 except ConnectionAbortedError:
                     self.logger.log("Disconnected", "runtime")
                 time.sleep(1)               
@@ -87,38 +118,3 @@ class RuntimeManager:
 if __name__ == "__main__":
     rt = RuntimeManager()
     rt.Start()
-
-
-# try:
-#     while True:
-#         frame = display.get_latest_frame()
-#         if frame is not None:
-#             frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
-#             cv2.imshow('frame', frame)
-#             if cv2.waitKey(1) & 0xFF == ord('q'):
-#                 break
-#         else:
-#             time.sleep(1)
-
-# except KeyboardInterrupt:
-#     sys.exit(0)
-
-
-
-
-
-
-
-
-
-
-# try:
-#     # test = RealtimeService.GetDynamicData()
-#     static_data = realtime.GetStaticData()
-#     while True:
-#         test = services["realtime"].GetDynamicData()
-#         time.sleep(.1)
-
-# except KeyboardInterrupt:
-#     global_logger.log("Exiting Project-Link Client", "core")
-#     sys.exit(0)
