@@ -33,7 +33,7 @@ class Logger:
             out += f"{arg} "
         print(out)
 
-    def debug(self, arg, prefix="", *args):
+    def debugging(self, arg, prefix="", *args):
         if self.debug:
             prefix = f"[{colored(self.prefix, 'magenta') + colored('::' + prefix, 'white') if prefix else ''}]"
             out = f"{prefix} {arg} "

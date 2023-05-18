@@ -81,7 +81,7 @@ class RuntimeManager:
                     self.logger.log("Disconnected", "runtime")
                 time.sleep(1)               
         except KeyboardInterrupt:
-            self.logger.log("Exiting Project-Link Client", "core")
+            self.logger.log("CTRL+C: Exiting Project-Link Client", "core")
             sys.exit(0)
 
 if __name__ == "__main__":

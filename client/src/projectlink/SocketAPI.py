@@ -14,7 +14,7 @@ class SocketAPI:
         self.host = host
         self.port = port
         self.job_handler = job_handler
-        self.logger = Logger("SocketAPI")
+        self.logger = Logger("SocketAPI", debug=True)
         # try:
         #     self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #     self.socket.connect((self.host, self.port))
@@ -56,7 +56,7 @@ class SocketAPI:
         Assemble a packet made of bytes before sending to server
         """
         data = pickle.dumps(data)
-        data = zlib.compress(data)
+        # data = zlib.compress(data)
 
         packet = b""
         packet += struct.pack("I", len(data))
@@ -64,15 +64,17 @@ class SocketAPI:
         return data
 
     def load_packet(self, data: bytes) -> dict:
-        data = zlib.decompress(data) # decompress
+        # data = zlib.decompress(data) # decompress
         data = pickle.loads(data) # convert to python object
         if not isinstance(data, dict):
             raise TypeError(f"expected data to be of type dict, got {type(data)}")
         return data
 
     def recv(self) -> dict:
-        size = struct.unpack("I", self.socket.recv(4))[0]
-        data = self.socket.recv(size)
+        header = self.socket.recv(4)
+        header = struct.unpack("I", header)[0]
+        self.logger.debugging(f"length of packet: {header} bytes", "socket")
+        data = self.socket.recv(header)
         return self.load_packet(data)
 
 
@@ -89,6 +91,10 @@ class SocketAPI:
     def Register(self):
         data = {
             "type": "register",
+            "data": {
+                "static_data": RealtimeDataService().GetStaticData(),
+                "dynamic_data": RealtimeDataService().GetDynamicData()
+            }
         }
         return self.get(data)
     
